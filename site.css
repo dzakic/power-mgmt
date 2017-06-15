@@ -10,8 +10,8 @@ body {
     border-radius: 1em;
     padding: 0em;
     margin-top: 1em;
-    height: 190px;
-    width: 360px;
+    height: 180px;
+    width: 440px;
     background-color: #F0F0F0;
 }
 
@@ -24,8 +24,9 @@ body {
     font-weight: 700;
 }
 
-.Node .content .ingress {
+.Node .content .ingress span {
     font-size: 1.2em;
+	filter: invert(100%);
 }
 
 .Node .content .warning {

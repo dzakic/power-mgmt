@@ -16,20 +16,22 @@
         </div>
     </div>
     <div class="content">
+        <div class="kids">
+            <div class="kid" ng-repeat="kid in node.kids">
+                {{ kid.name }}
+                <i class="fa fa-arrow-circle-o-right fa-lg"></i><br>
+                <span class="power" ng-bind="kid.instPower | number : 2"></span>
+                <span class="current" ng-bind="kid.current | number : 2"></span> /
+                <span class="current" ng-bind="kid.Imax | number : 2"></span>
+            </div>
+            <span class="sum power kid" ng-show="node.kids.length > 1" ng-bind="node.Pkids | number : 2"></span>
+            <span class="current kid" ng-show="node.kids.length > 1" ng-bind="node.Ikids | number : 2"></span>
+        </div>
         <div class="ingress">
             MAX
             <span class="power" ng-bind="node.Pmax | number : 1"></span>
             <a href="" ng-if="node.type == 'ps'" ng-click="editVoltage(node)" class="voltage" ng-bind="node.voltage | number : 2"></a>
             <span class="current" ng-bind="node.Imax | number : 2"></span>
-        </div>
-        <div class="kids">
-            <div class="kid" ng-repeat="kid in node.kids">
-                {{ kid.name }}
-                <i class="fa fa-arrow-circle-o-right fa-lg"></i><br>
-                <span class="current" ng-bind="kid.current | number : 2"></span> /
-                <span class="current" ng-bind="kid.Imax | number : 2"></span>
-            </div>
-            <span class="sum current kid" ng-show="node.kids.length > 1" ng-bind="node.Ikids | number : 2"><span>
         </div>
         <div class="cable" ng-if="node.parent !=undefined ">
             <i class="fa fa-arrow-circle-o-left fa-lg"></i>
@@ -44,7 +46,7 @@
             <span class="current" ng-bind="node.current | number : 2"></span>
         </div>
         <div class="spare">
-            SPARE <span class="current" ng-bind="node.Ispare | number : 2"></span>
+            DIST <span class="current" ng-bind="node.Ispare | number : 2"></span>
             <span class="power" ng-bind="node.Pspare | number : 2"></span>
         </div>
     </div>

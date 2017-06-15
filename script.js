@@ -80,25 +80,23 @@ powerApp.controller('mainController', function($scope) {
         }
 
         get Ptotal() {
-            var Ppoe = PoEs.reduce((a, b) => a.power + b.power, 0);
-            var Pkids = kids.reduce((a, b) => a.power + b.power, 0);
-            return this.Preq + Ppoe + Pkids;
+            return this.instPower + this.Ppoes + this.Pkids;
+        }
+
+        get Ppoes() {
+            return this.PoEs.reduce((sum, poe) => sum + poe.instPower, 0);
         }
 
         get Ipoes() {
-            var current = 0;
-            this.PoEs.forEach(function(poe) {
-                current += poe.current;
-            });
-            return current;
+            return this.PoEs.reduce((sum, poe) => sum + poe.current, 0);
+        }
+
+        get Pkids() {
+            return this.kids.reduce((sum, kid) => sum + kid.instPower, 0)
         }
 
         get Ikids() {
-            var current = 0;
-            this.kids.forEach(function(kid) {
-                current += kid.current;
-            });
-            return current;
+            return this.kids.reduce((sum, kid) => sum + kid.current, 0);
         }
 
         get cableOhm() {
@@ -119,27 +117,45 @@ powerApp.controller('mainController', function($scope) {
 
         tick() {
             var IselfMax = 0;
+            var Vmin = this.voltage;
             if (this.parent) {
                 this.voltage = Math.max(0, this.parent.voltage - this.cableVdrop);
                 var VdropMax = this.Imax * this.cableOhm;
-                var Vmin = this.parent.voltage - VdropMax;
+                Vmin = this.parent.voltage - VdropMax;
                 IselfMax = this.Pself / Vmin;
             }
 
+            // Simulate current values
             var Iself = this.voltage == 0 ? 0 : this.Pself / this.voltage;
             var Ireq = this.Ipoes + this.Ikids + Iself;
             // Current has inertia. Get closer to desired by 25%
-            this.current = this.current + (Ireq - this.current) * 0.25;
+            this.current = this.current + (Ireq - this.current) * 0.05;
+            if (!this.parent) {
+                // Cap power supply current, circuit breaker?
+                if (this.current > this.Imax) 
+                    this.current = this.Imax;                
+            } else {
+                if (this.current > topology.nodes[0].Imax)
+                    this.current = topology.nodes[0].Imax;
+            }
+
             this.instPower = this.voltage * this.current;
-            this.Pmax = this.voltage * this.Imax;
+            this.Pmax = Vmin * this.Imax;
 
             // Available I before brownout:
             this.Ifloor = this.Imax - IselfMax;
             this.Ispare = this.Ifloor > 0 ? this.Ifloor : 0;
             this.Pspare = this.Ispare * Vmin;
 
-            var IspareKid = this.Ispare / this.kids.length;
-            this.kids.forEach(kid => kid.Imax = IspareKid);
+            if (this.kids.some(kid => kid.current == 0)) {
+                // If we don't know kids' consumption, distribute evenly
+                var IspareKid = this.Ispare / this.kids.length;
+                this.kids.forEach(kid => kid.Imax = IspareKid);
+            } else {
+                // For known consumption, distribute proportionally to balance uneven tree
+                var quota = this.Ispare / this.Ikids;
+                this.kids.forEach(kid => kid.Imax = kid.current * quota);
+            }
 
         }
     }

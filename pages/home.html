@@ -1,0 +1,39 @@
+<!-- home.html -->
+<h1>Power Distribution Planning Tool</h1>
+<div id="player">
+    <button class="btn" ng-click="slowDown()" ng-disabled="!timer"><i class="fa fa-backward fa-lg" ></i></button>
+    <button class="btn" ng-click="stop()" ng-disabled="!timer"><i class="fa fa-stop fa-lg"></i></button>
+    <button class="btn" ng-click="play()" ng-disabled="timer"><i class="fa fa-play fa-lg"></i></button>
+    <button class="btn" ng-click="topology.tick()" ng-disabled="timer"><i class="fa fa-step-forward fa-lg"></i></button>
+    <button class="btn" ng-click="speedUp()" ng-disabled="!timer"><i class="fa fa-forward fa-lg"></i></button>
+    <span ng-show="timer"><span ng-bind="playSpeed > 1000 ? playSpeed / 1000 : 1000 / playSpeed | number : 0"></span>/s</span>
+</div>
+<div class="Node" ng-repeat="node in topology.nodes" ng-style="{ 'margin-left': '{{ 4 * node.level }}em' }">
+    <div class="heading heading-{{ node.type }}">#{{ node.id }}: <span class="name" href="#">{{ node.name }}</span>
+        <div class="options">
+            <i class="fa fa-minus-square fa-lg" ng-if="node.kids.length == 0" ng-click="removeNode($index)"></i>
+            <i class="fa fa-plus-square fa-lg" ng-if="node.kids.length < MAX_KIDS" ng-click="node.addChild()"></i>
+        </div>
+    </div>
+    <div class="content">
+        <p ng-if="node.parent !=undefined ">
+            <i class="fa fa-arrow-circle-o-left fa-lg"></i> #{{ node.parent.id }} {{ node.parent.name }} (<a href="" ng-click="editCableLength(node)">{{ node.cableLen > 0 ? (node.cableLen | number : 0) : "??" }}m</a>, {{ node.cableOhm }}&#8486;,
+            <i class="fa fa-long-arrow-down"></i><span class="voltage">{{ node.cableVdrop | number : 2 }}</span>,
+            <span class="power">{{ node.cableLoss | number : 2 }}</span>)
+        </p>
+        <div class="kids">
+            <div ng-repeat="kid in node.kids">{{ kid.name }} <i class="fa fa-arrow-circle-o-right fa-lg"></i></div>
+            <span class="current" ng-show="node.totalKidsCurrent" ng-bind="node.totalKidsCurrent | number : 2"><span>
+        </div>
+        <div class="properties">
+            <span class="voltage" ng-bind="node.voltage | number : 2" ng-if="node.type=='ns'"></span>
+            <a href="" ng-if="node.type=='ps'" ng-click="editVoltage(node)" class="voltage" ng-bind="node.voltage | number : 2"></a>
+            <span class="current" ng-bind="node.current | number : 2"></span>
+            <span ng-attr-class="{{ node.power > PS_MAXW && 'warning power' || 'power' }}" ng-bind="node.instPower | number : 1"></span>
+        </div>
+        <div class="properties">
+            <span class="current" ng-bind="node.maxcurrent | number : 2"></span>
+            <span class="current" ng-bind="node.deltacurrent | number : 2"></span>
+        </div>
+    </div>
+</div>

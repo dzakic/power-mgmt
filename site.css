@@ -1,0 +1,129 @@
+body {
+    font-family: Anaheim, sans-serif;
+    height: 100%;
+}
+
+.Node {
+    border-color: green;
+    border-width: 0.1em;
+    border-style: solid;
+    border-radius: 1em;
+    padding: 0em;
+    margin-top: 1em;
+    height: 160px;
+    width: 360px;
+    background-color: #F0F0F0;
+}
+
+.Node .content {
+    padding: 0.5em;
+}
+
+.Node .content .properties {
+    font-size: 1.8em;
+    font-weight: 700;
+}
+
+.Node .content .warning {
+    background: red;
+    color: yellow;
+}
+
+.Node .content .power {
+    color: gray;
+}
+
+.Node .content .voltage {
+    color: blue;
+}
+
+.Node .content .current {
+    color: green;
+}
+
+.Node .content .power:not(:empty)::after {
+    content: 'W';
+}
+
+.Node .content .voltage:not(:empty)::after {
+    content: 'V';
+}
+
+.Node .content .current:not(:empty)::after {
+    content: 'A';
+}
+
+.Node .fa {
+    color: gray;
+}
+
+.Node .heading {
+    padding: 0.5em;
+    border-radius: 0.9em 0.9em 0 0;
+}
+
+.Node .heading-ns {
+    background-color: #fcb17e;
+}
+
+.Node .heading-ps {
+    background-color: black;
+    color: white;
+}
+
+.Node .kids {
+    float: right;
+    border-left: 1px solid gray;
+    padding-left: 0.5em;
+}
+
+.Node .kids .current:before {
+    content: "Σ"
+}
+
+.Node .heading .options {
+    float: right;
+    color: gray;
+}
+
+.Node .heading .options i {
+    cursor: hand;
+}
+
+.Node .heading .options i:hover {
+    color: white;
+}
+
+.Node .name {
+    width: 50%;
+    margin: auto;
+    /* border: 3px solid green; */
+    font-weight: 700;
+    text-align: ceter;
+}
+
+#footer {
+    margin: 4em;
+    padding: 0.2em;
+    border-top: 1px solid #E0E0E0;
+    color: gray;
+}
+
+#player button {
+    width: 6em;
+}
+
+
+/*
+#player i {
+    color: gray;
+    margin: 0.1em;
+    padding: 0.3em 0.6em 0.3em 0.6em;
+    border: 1px solid #D0D0D0;
+    border-radius: 0.2em;
+}
+
+#player i:hover {
+    color: orange;
+}
+*/

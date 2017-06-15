@@ -21,18 +21,25 @@ powerApp.controller('mainController', function($scope) {
     $scope.CABLE_OHM = 12.3;
     $scope.NS_POWER = 14.7;
     $scope.PS_VOLTAGE = 60; // default
-    $scope.PS_MAXW = 200;
+    $scope.PS_MAXW = 200; // 
+    $scope.IPOE_MAXW = 15;
 
     class Topology {
         constructor() {
             this.nodes = [];
         }
-        addNode(name, type) {
+        addNode(name, type, parent) {
             var node = new Node(name, type);
             node.id = this.nodes.length;
             node.name = name ? name : node.type.toUpperCase() + "-" + node.id;;
             node.topology = this;
-            this.nodes.push(node);
+            if (parent) {
+                parent.kids.push(node);
+                node.parent = parent;
+                node.level = parent.level + 1;
+            }
+            var thisIndex = this.nodes.indexOf(parent);
+            this.nodes.splice(thisIndex + 1, 0, node);
             return node;
         }
 
@@ -50,24 +57,21 @@ powerApp.controller('mainController', function($scope) {
             this.kids = [];
             this.PoEs = [];
             this.level = 0;
-            this.cableLen = 0;
-            this.current = 0;
             if (this.type == 'ns') {
-                this.power = $scope.NS_POWER;
+                this.cableLen = 200;
+                this.Pself = $scope.NS_POWER;
             } else if (this.type == 'ps') {
-                this.power = 0;
+                this.cableLen = 0;
+                this.Pself = 0;
                 this.voltage = $scope.PS_VOLTAGE;
-                this.maxpower = $scope.PS_MAXW;
-                this.maxcurrent = this.maxpower / this.voltage;
+                this.Imax = $scope.PS_MAXW / this.voltage;
             }
+            // RT
+            this.current = 0;
         }
 
         addChild(name, type) {
-            var child = this.topology.addNode(name, type);
-            this.kids.push(child);
-            child.parent = this;
-            child.level = this.level + 1;
-            child.cableLen = 200;
+            this.topology.addNode(name, type, this);
         }
 
         delete() {
@@ -75,13 +79,21 @@ powerApp.controller('mainController', function($scope) {
             this.parent.kids.splice(kidIndex, 1);
         }
 
-        get totalPower() {
-            var totalPoEpower = PoEs.reduce((a, b) => a.power + b.power, 0);
-            var totalKidspower = kids.reduce((a, b) => a.power + b.power, 0);
-            return this.power + totalPoEpower;
+        get Ptotal() {
+            var Ppoe = PoEs.reduce((a, b) => a.power + b.power, 0);
+            var Pkids = kids.reduce((a, b) => a.power + b.power, 0);
+            return this.Preq + Ppoe + Pkids;
         }
 
-        get totalKidsCurrent() {
+        get Ipoes() {
+            var current = 0;
+            this.PoEs.forEach(function(poe) {
+                current += poe.current;
+            });
+            return current;
+        }
+
+        get Ikids() {
             var current = 0;
             this.kids.forEach(function(kid) {
                 current += kid.current;
@@ -101,21 +113,34 @@ powerApp.controller('mainController', function($scope) {
             return this.cableOhm * this.current * this.current;
         }
 
-        tick() {
-            if (this.parent)
-                this.voltage = Math.max(0, this.parent.voltage - this.cableVdrop);
+        get cableLossMax() {
+            return this.cableOhm * this.Imax * this.Imax;
+        }
 
-            var requiredMyCurrent = this.voltage == 0 ? 0 : this.power / this.voltage;
-            var requiredCurrent = this.totalKidsCurrent + requiredMyCurrent;
+        tick() {
+            var IselfMax = 0;
+            if (this.parent) {
+                this.voltage = Math.max(0, this.parent.voltage - this.cableVdrop);
+                var VdropMax = this.Imax * this.cableOhm;
+                var Vmin = this.parent.voltage - VdropMax;
+                IselfMax = this.Pself / Vmin;
+            }
+
+            var Iself = this.voltage == 0 ? 0 : this.Pself / this.voltage;
+            var Ireq = this.Ipoes + this.Ikids + Iself;
             // Current has inertia. Get closer to desired by 25%
-            this.current = this.current + (requiredCurrent - this.current) * 0.25;
+            this.current = this.current + (Ireq - this.current) * 0.25;
+            this.instPower = this.voltage * this.current;
+            this.Pmax = this.voltage * this.Imax;
 
             // Available I before brownout:
-            this.deltacurrent = this.maxcurrent - this.current;
-            var eachKidDeltaCurrent = this.deltacurrent / this.kids.length;
-            this.kids.forEach(kid => kid.deltacurrent = eachKidDeltaCurrent);
+            this.Ifloor = this.Imax - IselfMax;
+            this.Ispare = this.Ifloor > 0 ? this.Ifloor : 0;
+            this.Pspare = this.Ispare * Vmin;
 
-            this.instPower = this.voltage * this.current;
+            var IspareKid = this.Ispare / this.kids.length;
+            this.kids.forEach(kid => kid.Imax = IspareKid);
+
         }
     }
 

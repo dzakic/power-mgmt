@@ -126,14 +126,14 @@ powerApp.controller('mainController', function($scope) {
             }
 
             // Simulate current values
-            var Iself = this.voltage == 0 ? 0 : this.Pself / this.voltage;
-            var Ireq = this.Ipoes + this.Ikids + Iself;
+            this.Iself = this.voltage == 0 ? 0 : this.Pself / this.voltage;
+            var Ireq = this.Ipoes + this.Ikids + this.Iself;
             // Current has inertia. Get closer to desired by 25%
             this.current = this.current + (Ireq - this.current) * 0.05;
             if (!this.parent) {
                 // Cap power supply current, circuit breaker?
-                if (this.current > this.Imax) 
-                    this.current = this.Imax;                
+                if (this.current > this.Imax)
+                    this.current = this.Imax;
             } else {
                 if (this.current > topology.nodes[0].Imax)
                     this.current = topology.nodes[0].Imax;

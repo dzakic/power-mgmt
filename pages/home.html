@@ -7,11 +7,13 @@
     <button class="btn" ng-click="topology.tick()" ng-disabled="timer"><i class="fa fa-step-forward fa-lg"></i></button>
     <button class="btn" ng-click="speedUp()" ng-disabled="!timer"><i class="fa fa-forward fa-lg"></i></button>
     <span ng-show="timer"><span ng-bind="playSpeed > 1000 ? playSpeed / 1000 : 1000 / playSpeed | number : 0"></span>/s</span>
+    <button class="btn" ng-click="save()"><i class="fa fa-floppy-o fa-lg"></i></button>
+    <button class="btn" ng-click="restore()" ng-disabled="$scope.snapshot"><i class="fa fa-undo fa-lg"></i></button>
 </div>
 <div class="Node" ng-repeat="node in topology.nodes" ng-style="{ 'margin-left': '{{ 4 * node.level }}em' }">
     <div class="heading heading-{{ node.type }}">#{{ node.id }}: <span class="name" href="#">{{ node.name }}</span>
         <div class="options">
-            <i class="fa fa-minus-square fa-lg" ng-if="node.kids.length == 0" ng-click="removeNode($index)"></i>
+            <i class="fa fa-minus-square fa-lg" ng-if="node.kids.length === 0" ng-click="removeNode($index)"></i>
             <i class="fa fa-plus-square fa-lg" ng-if="node.kids.length < MAX_KIDS" ng-click="node.addChild()"></i>
         </div>
     </div>
@@ -20,35 +22,59 @@
             <div class="kid" ng-repeat="kid in node.kids">
                 {{ kid.name }}
                 <i class="fa fa-arrow-circle-o-right fa-lg"></i><br>
-                <span class="power" ng-bind="kid.instPower | number : 2"></span>
-                <span class="current" ng-bind="kid.current | number : 2"></span> /
-                <span class="current" ng-bind="kid.Imax | number : 2"></span>
+                <span class="power" ng-bind="kid.instPower | number : 1"></span>
+                <span class="current" ng-bind="kid.Itotal | number : 2"></span> /
+                <span class="current" ng-bind="kid.ItotalMax | number : 2"></span> -
+                <span class="current" ng-bind="kid.IparentMax | number : 2"></span>
             </div>
-            <span ng-show="node.kids.length > 1">
-            <span class="sum power kid" ng-bind="node.Pkids | number : 2"></span> /
+            <span ng-show="node.kids.length > 0">
+            <span class="sum power kid" ng-bind="node.Ikids * node.voltage | number : 1"></span>
             <span class="current kid" ng-bind="node.Ikids | number : 2"></span>
             </span>
         </div>
-        <div class="ingress">
-            MAX
-            <span class="power" ng-bind="node.Pmax | number : 1"></span>
-            <a href="" ng-if="node.type == 'ps'" ng-click="editVoltage(node)" ng-bind="node.voltage | number : 2"></a>
-            <span class="current" ng-bind="node.Imax | number : 2"></span>
-        </div>
         <div class="cable" ng-if="node.parent !=undefined ">
-            <i class="fa fa-arrow-circle-o-left fa-lg"></i> #{{ node.parent.id }} {{ node.parent.name }} (
-            <a href="" ng-click="editCableLength(node)">{{ node.cableLen > 0 ? (node.cableLen | number : 0) : "??" }}m</a>, {{ node.cableOhm }}&#8486;,
-            <i class="fa fa-long-arrow-down"></i><span class="voltage">{{ node.cableVdrop | number : 2 }}</span>,
+            <i class="fa fa-arrow-circle-o-left fa-lg"></i> #{{ node.parent.id }} {{ node.parent.name }} (<a href="" ng-click="editCableLength(node)">{{ node.cableLen > 0 ? (node.cableLen | number : 0) : "??" }}m</a>, {{ node.cableOhm }}&#8486;,
+            <i class="fa fa-long-arrow-down"></i><span class="voltage">{{ node.cableVdrop | number : 1 }}</span>,
             <span class="power">{{ node.cableLoss | number : 2 }}</span>)
         </div>
+        <div class="ingress">
+            <label>max</label>
+            <span class="power" ng-if="node.type === 'ps'" ng-bind="node.Pmax | number : 1"></span>
+            <span class="current" ng-bind="node.ItotalMax | number : 2"></span> /
+            <span class="current" ng-bind="node.IparentMax | number : 2"></span>
+            <span class="voltage" ng-bind="node.Vmin | number : 1"></span>
+        </div>
         <div class="properties">
-            <span class="power" ng-bind="node.instPower | number : 1"></span>
-            <span ng-if="node.type != 'ps'" class="voltage" ng-bind="node.voltage | number : 2" ng-if="node.type!='Ps'"></span>
-            <span class="current" ng-bind="node.current | number : 2"></span>
+            <a class="voltage" href="" ng-if="node.type === 'ps'" ng-click="editVoltage(node)" ng-bind="node.voltage | number : 1"></a>
+            <span ng-if="node.type != 'ps'" class="voltage" ng-bind="node.voltage | number : 1" ng-if="node.type!='Ps'"></span>
+            <span class="power" ng-if="node.type==='ps'" ng-bind="node.Ptotal | number : 1"></span>
+            <span class="current" ng-bind="node.Itotal | number : 2"></span>
+            <span ng-bind="node.Itotal * 100 / node.IparentMax | number : 0"></span>%
         </div>
         <div class="spare">
-            DIST <span class="current" ng-bind="node.Ispare | number : 2"></span>
-            <span class="power" ng-bind="node.Pspare | number : 2"></span>
+            <span ng-if="node.Iself">
+                <label>self</label>
+                <span class="current" ng-bind="node.Iself | number : 2"></span> / <span class="current" ng-bind="node.IselfMax | number : 2"></span>                
+            </span>
+            <span ng-if="node.type !== 'ps'">
+                <label>dist</label>
+                <span class="current" ng-bind="node.Idist | number : 2"></span>
+                <span class="power" ng-bind="node.Pdist | number : 1"></span>
+            </span>
+        </div>
+        <div class="poes" ng-if="node.type!='ps'">
+            <label>PoE</label>
+            <span class="poe" ng-repeat="poe in node.poes">
+                {{ $index + 1 }}:                
+                <span class="current" ng-bind="poe.Iself | number : 1"></span>
+                <a href="" ng-click="editPoE(poe)"><span class="power" ng-bind="node.voltage * poe.Iself | number : 1"></span></a>
+            </span>            
+            <span ng-if="node.type!='ps'">
+                <label>avail</label>
+                <span class="power" ng-bind="node.PpoesAvail | number : 1"></span> /
+                <span class="power" ng-bind="node.PpoesMax | number : 1"></span>
+            </span>
         </div>
     </div>
+</div>
 </div>
